@@ -20,6 +20,7 @@ def maximal_marginal_relevance(v1,songs, lambda_constant=0.5, threshold_terms=10
     :param threshold_terms: number of terms to include in result set
     :return: Ranked songs with score
     """
+
     s = []
     r = list(songs.iloc[:,0])
     while len(r) > 0:
@@ -48,8 +49,14 @@ def maximal_marginal_relevance(v1,songs, lambda_constant=0.5, threshold_terms=10
 
 """
 EXAMPLE 
-In this implementation it is assumed that the songs will be in a pandas dataframe and the first colummn is the index 
+In this implementation it is assumed that the songs will be in a pandas dataframe and the first column is the index 
 of the songs, but it can be changed later
+
+IDEA 
+Before starting the session compute the cosine similarity matrix of all the songs.
+We will still need to compute the cosine similarities for the query because the query is an average that cannot be found 
+in the dataset of songs  
+
 """
 if __name__ == "__main__":
     average_session_songs  = np.array([0.63,0.616,1,-8.128,0,0.0309,0.463,0.0408,0.173,0.509,118.65])
