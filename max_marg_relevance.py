@@ -1,17 +1,28 @@
 from sklearn.metrics.pairwise import cosine_similarity
-import numpy as np
+from sklearn.metrics.pairwise import laplacian_kernel
 import pandas as pd
+import numpy as np
 
-def recommend(average_session_songs, playlist):
-    """
-            :param average_session_songs: Songs that the user has listened until now
-            :param playlist: Songs to rank
-            """
+def getRecommendation(songs_df, tracks_w_features):
 
-    result = maximal_marginal_relevance(average_session_songs,playlist)
-    return result
+    liked_songs_nofeatures = songs_df.loc[songs_df['class'] == 1]
+    liked_songs_uris = liked_songs_nofeatures['track_uri'].to_numpy()
 
-def maximal_marginal_relevance(v1,songs, lambda_constant=0.5, threshold_terms=10):
+    #Now we get uris of the songs the user liked we can get the features from the feature dataframe
+    liked_song_features = pd.DataFrame()
+    for i in liked_songs_uris:
+        song_with_features = tracks_w_features.loc[tracks_w_features['uri'] == i]
+        liked_songs_features = liked_song_features.append(song_with_features)
+
+    liked_song_features = liked_songs_features.drop(columns=['uri'])
+
+    average_session_songs = liked_song_features[['acousticness','danceability','energy','instrumentalness','liveness',
+                                                      'loudness','speechiness','tempo','valence']].mean()
+
+
+    return maximal_marginal_relevance(average_session_songs,tracks_w_features.sample(n=20))
+
+def maximal_marginal_relevance(v1,songs, lambda_constant=0.5, threshold_terms=1, sim = True):
     """
     Return ranked phrases using MMR. Cosine similarity is used as similarity measure.
     :param v1: query vector
@@ -22,21 +33,33 @@ def maximal_marginal_relevance(v1,songs, lambda_constant=0.5, threshold_terms=10
     """
 
     s = []
-    r = list(songs.iloc[:,0])
+    r = songs['uri'].tolist()
     while len(r) > 0:
         score = 0
         song_to_add = None
         for i in r:
-            row = songs.loc[songs['id'] == i]
+            print(len(r))
+            row = songs.loc[songs['uri'] == i]
+            row = row.drop(columns=['uri'])
             row = row.to_numpy()
-            first_part = cosine_similarity([v1], [row[0][1:]])
+            if len(row) < 1:
+              r.remove(i)
+              break
+            if sim:
+                first_part = cosine_similarity([v1], [row[0]])
+            else:
+                first_part = laplacian_kernel([v1], [row[0]])
             second_part = 0
             for j in s:
-                row2 = songs.loc[songs['id'] == j[0]]
+                row2 = songs.loc[songs['uri'] == j[0]]
+                row2 = row2.drop(columns=['uri'])
                 row2 = row2.to_numpy()
-                cos_sim = cosine_similarity([row[0][1:]],[row2[0][1:]])
-                if cos_sim > second_part:
-                    second_part = cos_sim
+                if sim:
+                    sim = cosine_similarity([row[0]],[row2[0]])
+                else:
+                    sim = laplacian_kernel([row[0]], [row2[0]])
+                if sim > second_part:
+                    second_part = sim
             equation_score = lambda_constant*(first_part)-(1-lambda_constant) * second_part
             if equation_score > score:
                 score = equation_score
@@ -47,26 +70,5 @@ def maximal_marginal_relevance(v1,songs, lambda_constant=0.5, threshold_terms=10
         s.append((song_to_add, score))
     return (s, s[:threshold_terms])[threshold_terms > len(s)]
 
-"""
-EXAMPLE 
-In this implementation it is assumed that the songs will be in a pandas dataframe and the first column is the index 
-of the songs, but it can be changed later
-
-IDEA 
-Before starting the session compute the cosine similarity matrix of all the songs.
-We will still need to compute the cosine similarities for the query because the query is an average that cannot be found 
-in the dataset of songs  
-
-"""
-if __name__ == "__main__":
-    average_session_songs  = np.array([0.63,0.616,1,-8.128,0,0.0309,0.463,0.0408,0.173,0.509,118.65])
-    s1 =  np.array([0,0.23,0.84,1,-8.128,0,0.034,0.99,0.01,0.173,0.509,118.65])
-    s2 = np.array([1,0.23,0.06,1,-8.128,0,0.109,0.99,0.02,0.2,0.7,111.65])
-    s3 = np.array([2,0.25,0.52,1,-8.128,0,0.043,0.45,0.03,0.3,0.9,200.65])
-    s4 = np.array([3,0.89,0.31,1,-8.128,0,0.041,0.22,0.04,0.4,0.1,50.65])
-    playlist = pd.DataFrame([s1,s2,s3,s4])
-    playlist.columns = ['id', '', '', '','','','','','','','','']
-    recommend = recommend(average_session_songs,playlist)
-    print(recommend)
 
 
