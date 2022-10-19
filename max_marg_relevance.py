@@ -67,6 +67,5 @@ if __name__ == "__main__":
     playlist = pd.DataFrame([s1,s2,s3,s4])
     playlist.columns = ['uri', '', '', '','','','','','','','']
     recommend = recommend(average_session_songs,playlist)
-    print(recommend)
 
 
