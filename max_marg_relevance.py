@@ -27,12 +27,12 @@ def maximal_marginal_relevance(v1,songs, lambda_constant=0.5, threshold_terms=10
         score = 0
         song_to_add = None
         for i in r:
-            row = songs.loc[songs['id'] == i]
+            row = songs.loc[songs['uri'] == i]
             row = row.to_numpy()
             first_part = cosine_similarity([v1], [row[0][1:]])
             second_part = 0
             for j in s:
-                row2 = songs.loc[songs['id'] == j[0]]
+                row2 = songs.loc[songs['uri'] == j[0]]
                 row2 = row2.to_numpy()
                 cos_sim = cosine_similarity([row[0][1:]],[row2[0][1:]])
                 if cos_sim > second_part:
@@ -59,13 +59,13 @@ in the dataset of songs
 
 """
 if __name__ == "__main__":
-    average_session_songs  = np.array([0.63,0.616,1,-8.128,0,0.0309,0.463,0.0408,0.173,0.509,118.65])
-    s1 =  np.array([0,0.23,0.84,1,-8.128,0,0.034,0.99,0.01,0.173,0.509,118.65])
-    s2 = np.array([1,0.23,0.06,1,-8.128,0,0.109,0.99,0.02,0.2,0.7,111.65])
-    s3 = np.array([2,0.25,0.52,1,-8.128,0,0.043,0.45,0.03,0.3,0.9,200.65])
-    s4 = np.array([3,0.89,0.31,1,-8.128,0,0.041,0.22,0.04,0.4,0.1,50.65])
+    average_session_songs  = np.array([0.616,1,-8.128,0,0.0309,0.463,0.0408,0.173,0.509,118.65])
+    s1 =  np.array(["spotify:track:09jDQcg0LkTWH9NEVtYB44",0.23,1,-8.128,0,0.034,0.99,0.01,0.173,0.509,118.65])
+    s2 = np.array(["spotify:track:09jDQcg0LkTWH9NEVtYB45",0.23,1,-8.128,0,0.109,0.99,0.02,0.2,0.7,111.65])
+    s3 = np.array(["spotify:track:09jDQcg0LkTWH9NEVtYB46",0.25,1,-8.128,0,0.043,0.45,0.03,0.3,0.9,200.65])
+    s4 = np.array(["spotify:track:09jDQcg0LkTWH9NEVtYB47",0.89,1,-8.128,0,0.041,0.22,0.04,0.4,0.1,50.65])
     playlist = pd.DataFrame([s1,s2,s3,s4])
-    playlist.columns = ['id', '', '', '','','','','','','','','']
+    playlist.columns = ['uri', '', '', '','','','','','','','']
     recommend = recommend(average_session_songs,playlist)
     print(recommend)
 
