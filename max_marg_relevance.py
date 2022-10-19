@@ -3,26 +3,14 @@ from sklearn.metrics.pairwise import laplacian_kernel
 import pandas as pd
 import numpy as np
 
-def getRecommendation(songs_df, tracks_w_features):
+def getRecommendation(songs):
+    liked_songs = songs.loc[songs['class'] == 1]
+    average_session_songs = liked_songs[['acousticness','danceability','energy','liveness','tempo','valence']].mean()
+    songs_to_recommend_from = songs.sample(n=20)
+    songs_to_recommend_from =songs_to_recommend_from.filter(['acousticness','danceability','energy','liveness','tempo','valence','track_uri'])
+    return maximal_marginal_relevance(average_session_songs,songs_to_recommend_from)
 
-    liked_songs_nofeatures = songs_df.loc[songs_df['class'] == 1]
-    liked_songs_uris = liked_songs_nofeatures['track_uri'].to_numpy()
-
-    #Now we get uris of the songs the user liked we can get the features from the feature dataframe
-    liked_song_features = pd.DataFrame()
-    for i in liked_songs_uris:
-        song_with_features = tracks_w_features.loc[tracks_w_features['uri'] == i]
-        liked_songs_features = liked_song_features.append(song_with_features)
-
-    liked_song_features = liked_songs_features.drop(columns=['uri'])
-
-    average_session_songs = liked_song_features[['acousticness','danceability','energy','instrumentalness','liveness',
-                                                      'loudness','speechiness','tempo','valence']].mean()
-
-
-    return maximal_marginal_relevance(average_session_songs,tracks_w_features.sample(n=20))
-
-def maximal_marginal_relevance(v1,songs, lambda_constant=0.5, threshold_terms=1, sim = True):
+def maximal_marginal_relevance(v1,songs_to_compare, lambda_constant=0.5, threshold_terms=1, sim = True):
     """
     Return ranked phrases using MMR. Cosine similarity is used as similarity measure.
     :param v1: query vector
@@ -31,17 +19,16 @@ def maximal_marginal_relevance(v1,songs, lambda_constant=0.5, threshold_terms=1,
     :param threshold_terms: number of terms to include in result set
     :return: Ranked songs with score
     """
-
     s = []
-    r = songs['uri'].tolist()
+    r = songs_to_compare['track_uri'].tolist()
     while len(r) > 0:
         score = 0
         song_to_add = None
         for i in r:
-            print(len(r))
-            row = songs.loc[songs['uri'] == i]
-            row = row.drop(columns=['uri'])
+            row = songs_to_compare.loc[songs_to_compare['track_uri'] == i]
+            row = row.drop(columns=['track_uri'])
             row = row.to_numpy()
+            print(row)
             if len(row) < 1:
               r.remove(i)
               break
@@ -51,8 +38,8 @@ def maximal_marginal_relevance(v1,songs, lambda_constant=0.5, threshold_terms=1,
                 first_part = laplacian_kernel([v1], [row[0]])
             second_part = 0
             for j in s:
-                row2 = songs.loc[songs['uri'] == j[0]]
-                row2 = row2.drop(columns=['uri'])
+                row2 = songs_to_compare.loc[songs_to_compare['track_uri'] == j[0]]
+                row2 = row2.drop(columns=['track_uri'])
                 row2 = row2.to_numpy()
                 if sim:
                     sim = cosine_similarity([row[0]],[row2[0]])
@@ -68,7 +55,8 @@ def maximal_marginal_relevance(v1,songs, lambda_constant=0.5, threshold_terms=1,
             song_to_add = i
         r.remove(song_to_add)
         s.append((song_to_add, score))
-    return (s, s[:threshold_terms])[threshold_terms > len(s)]
+    return s[:threshold_terms][0][0]
+
 
 
 
